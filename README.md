@@ -1,6 +1,6 @@
 `bioc2ri` provides a modern, extensible conversion engine that allows Python objects and R objects to flow between each other safely, predictably, and efficiently.
 
-Unlike `rpy2.localconverter`, which uses a fixed set of implicit conversions, `bioc2ri` gives you:
+While we use the incredible groundwork by `rpy2`, we focus on simplified and extended conversions useful in bioinformatics and Bioconductor workflows. Unlike `rpy2.localconverter`, which uses a fixed set of implicit conversions, `bioc2ri` gives you:
 
 - A dispatch-based conversion engine
 
