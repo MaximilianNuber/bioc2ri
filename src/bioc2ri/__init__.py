@@ -14,3 +14,17 @@ except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 finally:
     del version, PackageNotFoundError
+
+from .engine import Engine
+from .base_plugin import base_plugin
+from .numpy_plugin import numpy_plugin
+from .pandas_plugin import pandas_plugin
+from .biocpy_plugin import biocpy_plugin
+from .scipy_sparse_plugin import scipy_sparse_plugin
+
+__all__ = [
+    "Engine",
+    "numpy_plugin",
+    "pandas_plugin",
+    "biocpy_plugin",
+]
