@@ -14,7 +14,7 @@ from rpy2.robjects.conversion import localconverter
 from rpy2.robjects import numpy2ri, pandas2ri
 from rpy2.robjects.conversion import get_conversion
 from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage as STAP
-from anndata2ri import scipy2ri
+
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, csc_matrix
@@ -195,32 +195,6 @@ def _(obj: pd.Series) -> vectors.Vector:    # noqa: F811
     with localconverter(default_converter + pandas2ri.converter):
         return conversion.py2rpy(obj)
 
-@_py_to_r.register(csr_matrix)
-def _(obj: csr_matrix) -> ro.Matrix:    # noqa: F811
-    """Convert a SciPy CSR sparse matrix to an R sparse matrix.
-
-    Args:
-        obj (csr_matrix): A SciPy CSR sparse matrix.
-
-    Returns:
-        ro.Matrix: An R dgCMatrix or similar sparse S4 object.
-    """
-    with localconverter(default_converter + scipy2ri.converter):
-        return conversion.py2rpy(obj)
-
-@_py_to_r.register(csc_matrix)
-def _(obj: csc_matrix) -> ro.Matrix:    # noqa: F811
-    """Convert a SciPy CSC sparse matrix to an R sparse matrix.
-
-    Args:
-        obj (csc_matrix): A SciPy CSC sparse matrix.
-
-    Returns:
-        ro.Matrix: An R dgCMatrix or similar sparse S4 object.
-    """
-    with localconverter(default_converter + scipy2ri.converter):
-        return conversion.py2rpy(obj)
-
 # ----------------------
 # R -> Python converters
 # ----------------------
@@ -362,29 +336,6 @@ def _(obj: vectors.Vector): # noqa: F811
         list of elements.
     """
     return list(obj)
-
-@_r_to_py.register(RS4)
-def _(obj: RS4): # noqa: F811
-    """
-    Convert an R S4 object.
-
-    Handles sparse Matrix S4 classes via scipy2ri; otherwise, returns
-    a dict of slot values.
-
-    Args:
-        obj: rpy2.robjects.methods.RS4
-
-    Returns:
-        dict or sparse matrix conversion.
-    """
-    # Handle sparse S4 via scipy2ri
-    cls = obj.rclass[0]
-    if cls in ("dgCMatrix", "dgRMatrix"):
-        with localconverter(default_converter + scipy2ri.converter):
-            cv = get_conversion()
-            return cv.rpy2py(obj)
-    # Otherwise, map slots to dict
-    return {name: _r_to_py(obj.slots[name]) for name in obj.slotnames()}
 
 
 ### Sparse CSC matrix conversion via HDF5 (for large matrices) ###
