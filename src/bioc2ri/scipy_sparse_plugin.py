@@ -1,6 +1,10 @@
 # --- scipy_sparse_plugin.py ---
 from functools import cache
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 @cache
 def scipy_sparse_plugin():
     import numpy as np

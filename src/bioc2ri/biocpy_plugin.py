@@ -8,6 +8,10 @@ from .engine import Engine
 from .numpy_plugin import numpy_plugin
 from .rnames import get_rownames, set_rownames
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 
 def biocpy_plugin() -> Engine:
     """

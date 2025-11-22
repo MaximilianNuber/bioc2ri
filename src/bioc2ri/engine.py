@@ -5,6 +5,10 @@ from rpy2.robjects import r, vectors as rv
 # from rpy2.rinterface_lib.sexp import SexpS4
 from rpy2.rinterface import SexpS4
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 PyRule = Tuple[Type, Callable[['Engine', Any], Any]]
 RRule  = Tuple[Type, Callable[['Engine', Any], Any]]
 

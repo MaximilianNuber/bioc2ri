@@ -1,6 +1,10 @@
 # pandas_plugin.py
 from functools import cache 
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 @cache
 def pandas_plugin():
     import numpy as np

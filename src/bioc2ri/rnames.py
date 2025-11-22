@@ -5,6 +5,10 @@ from rpy2.rinterface_lib.sexp import Sexp, NULLType
 from rpy2.rinterface import NULL
 import rpy2
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 RObj = Union[Sexp, NULLType]
 
 # Grab R replacement functions once

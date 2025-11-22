@@ -2,6 +2,10 @@ from typing import Union, Iterable, Optional
 from rpy2.robjects import r, baseenv
 from rpy2.rinterface import Sexp, NULLType
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 RObj = Union[Sexp, NULLType]
 
 def is_r(obj) -> bool:

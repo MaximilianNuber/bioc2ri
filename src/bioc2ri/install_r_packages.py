@@ -1,4 +1,9 @@
 from .lazy_r_env import get_r_environment
+
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 renv = get_r_environment()
 r = renv.ro.r
 

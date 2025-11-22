@@ -1,5 +1,9 @@
 from functools import singledispatch
 from typing import Sequence, Union, Any, Tuple
+
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
 # import types
 
 from rpy2 import robjects as ro

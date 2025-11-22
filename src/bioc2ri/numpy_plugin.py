@@ -1,6 +1,10 @@
 from functools import cache
 from .engine import Engine
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 @cache
 def numpy_plugin():
     import numpy as np

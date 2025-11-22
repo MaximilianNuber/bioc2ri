@@ -1,6 +1,10 @@
 # Build a small engine with only the "base" rules:
 from bioc2ri import base_plugin, numpy_plugin, pandas_plugin, biocpy_plugin, scipy_sparse_plugin
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 
 def show_roundtrip(x):
     """Pretty-print a Python → R → Python roundtrip."""

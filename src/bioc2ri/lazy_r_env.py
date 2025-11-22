@@ -1,6 +1,10 @@
 from types import SimpleNamespace
 from functools import lru_cache
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 @lru_cache(maxsize=1)
 def get_r_environment() -> SimpleNamespace:
     """Lazy import rpy2 and core R packages.

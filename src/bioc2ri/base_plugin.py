@@ -2,6 +2,10 @@
 from functools import cache 
 from .engine import Engine
 
+__author__ = "MaximilianNuber"
+__copyright__ = "MaximilianNuber"
+__license__ = "MIT"
+
 @cache 
 def base_plugin(): 
     from rpy2.robjects import vectors as rv 
