@@ -41,7 +41,6 @@ def get_r_environment() -> SimpleNamespace:
     from rpy2.robjects import default_converter
     from rpy2.robjects.conversion import get_conversion
     from rpy2.robjects.vectors import ListVector, IntVector, FloatVector, StrVector, BoolVector
-    from anndata2ri import scipy2ri
 
     # Your own converters & lazy‐loader
     from .rpy2_default_conversions import _py_to_r, _r_to_py, lazy_import_r_packages
@@ -60,7 +59,6 @@ def get_r_environment() -> SimpleNamespace:
         default_converter=default_converter,
         pandas2ri=pandas2ri,
         numpy2ri=numpy2ri,
-        scipy2ri = scipy2ri,
         get_conversion=get_conversion,
         ListVector=ListVector,
         IntVector=IntVector,
