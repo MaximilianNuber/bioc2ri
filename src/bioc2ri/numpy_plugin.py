@@ -7,6 +7,18 @@ __license__ = "MIT"
 
 @cache
 def numpy_plugin():
+    """Creates and returns an Engine with NumPy conversion rules.
+
+    Handles conversion between NumPy scalars/arrays and R vectors/arrays.
+    Features:
+    - NumPy scalars -> R length-1 vectors
+    - NumPy arrays -> R arrays (with dimension preservation)
+    - Handling of integer overflows (promoting to float)
+    - Handling of R NAs -> NumPy NaNs (for floats) or object arrays (for bools/ints with NA)
+
+    Returns:
+        Engine: An Engine instance with NumPy rules registered.
+    """
     import numpy as np
     from rpy2.robjects import vectors as rv, r
     from rpy2.rinterface import NA_Logical, NA_Integer, NA_Real, NULLType
@@ -15,6 +27,7 @@ def numpy_plugin():
 
     # ---------- helpers ----------
     def _dims(x):
+        """Extracts dimensions from an R object, returning None if NULL."""
         rdim = r["dim"](x)
         if isinstance(rdim, NULLType):
             return None
@@ -22,28 +35,41 @@ def numpy_plugin():
         return d if len(d) else None
 
     def _reshape(arr, dims):
+        """Reshapes a NumPy array to match R dimensions (Fortran order)."""
         return arr.reshape(dims, order="F") if dims else arr
 
     # ---------- Python -> R: NumPy scalars ----------
     @eng.register_py(np.bool_)
-    def _(e, x): return rv.BoolSexpVector([bool(x)])
+    def _(e, x):
+        """Converts NumPy bool scalar to R logical vector."""
+        return rv.BoolSexpVector([bool(x)])
 
     @eng.register_py(np.integer)
     def _(e, x):
+        """Converts NumPy integer scalar to R integer or numeric vector."""
         xi = int(x)
         if -(2**31) <= xi < 2**31:
             return rv.IntSexpVector([xi])
         return rv.FloatSexpVector([float(xi)])
 
     @eng.register_py(np.floating)
-    def _(e, x): return rv.FloatSexpVector([float(x)])
+    def _(e, x):
+        """Converts NumPy float scalar to R numeric vector."""
+        return rv.FloatSexpVector([float(x)])
 
     @eng.register_py(np.complexfloating)
-    def _(e, x): return rv.ComplexSexpVector([complex(x)])
+    def _(e, x):
+        """Converts NumPy complex scalar to R complex vector."""
+        return rv.ComplexSexpVector([complex(x)])
 
     # ---------- Python -> R: np.ndarray ----------
     @eng.register_py(np.ndarray)
     def _(e, a: "np.ndarray"):
+        """Converts NumPy ndarray to R array/vector.
+
+        Handles various dtypes (float, int, bool, complex, str).
+        Preserves dimensions.
+        """
         k = a.dtype.kind
         vec = None
 
@@ -86,6 +112,10 @@ def numpy_plugin():
     # ---------- R -> Python: numeric/bool vectors & arrays ----------
     @eng.register_r(rv.FloatSexpVector)
     def _(e, x):
+        """Converts R numeric vector/array to NumPy float array.
+
+        Maps R NA_real_ to np.nan.
+        """
         # Float: NA_real_ -> np.nan
         data = [np.nan if (v is NA_Real) else float(v) for v in x]
         arr = np.asarray(data, dtype=np.float64, order="F")
@@ -94,6 +124,11 @@ def numpy_plugin():
 
     @eng.register_r(rv.IntSexpVector)
     def _(e, x):
+        """Converts R integer vector/array to NumPy int or float array.
+
+        If R vector contains NAs, returns a float64 array with np.nan.
+        Otherwise returns int32 array.
+        """
         # If any NA -> float64 with np.nan, else int32
         has_na = any(v is NA_Integer for v in x)
         if has_na:
@@ -105,6 +140,11 @@ def numpy_plugin():
 
     @eng.register_r(rv.BoolSexpVector)
     def _(e, x):
+        """Converts R logical vector/array to NumPy bool or object array.
+
+        If R vector contains NAs, returns an object array with None.
+        Otherwise returns bool array.
+        """
         # If any NA -> object array with None, else bool
         has_na = any(v is NA_Logical for v in x)
         if has_na:
@@ -116,6 +156,7 @@ def numpy_plugin():
 
     @eng.register_r(rv.ComplexSexpVector)
     def _(e, x):
+        """Converts R complex vector/array to NumPy complex128 array."""
         # R has no distinct complex NA singleton; NA_complex_ is just NA with type complex.
         data = [complex(v) for v in x]  # you'd need to decide how to handle NA here
         arr = np.asarray(data, dtype=np.complex128, order="F")

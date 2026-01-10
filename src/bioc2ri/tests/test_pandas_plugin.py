@@ -3,11 +3,11 @@ import pandas as pd
 from rpy2.robjects import r, vectors as rv
 from rpy2.rinterface import NA_Real
 
-#from bioc2ri.pandas_plugin import pandas_plugin
+from bioc2ri.pandas_plugin import pandas_plugin
 
 eng = pandas_plugin()
 
-from bioc2ri.src.bioc2ri.rnames import set_rownames
+from bioc2ri.rnames import set_rownames
 
 def test_series_float_to_r_vector():
     s = pd.Series([1.0, np.nan, 3.0], name="x")

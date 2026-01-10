@@ -1,0 +1,35 @@
+name: bioc2ri-env
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  # Python basics
+  - conda-forge::python>=3.10
+  - conda-forge::pip
+
+  # Required Python packages
+  - conda-forge::rpy2>=3.6.1
+  - conda-forge::numpy>=2.1.3
+  - conda-forge::pandas>=2.3.0
+  - conda-forge::scipy>=1.15.2
+
+  # R Base and Required R Packages
+  - conda-forge::r-base
+  - conda-forge::r-matrix
+  # - conda-forge::r-biocmanager # Often useful but we have explicit bioconda packages below
+
+  # Bioconductor Packages
+  - bioconda::bioconductor-s4vectors
+
+  - pip:
+    - biocframe>=0.6.3
+    - biocutils>=0.2.3
+    - summarizedexperiment
+    - singlecellexperiment
+    - jupyter-cache
+    - rich
+    - jupyterlab
+    - ipykernel
+    - pyarrow
+    - pybind11
+    - joblib

@@ -13,28 +13,26 @@ __copyright__ = "MaximilianNuber"
 __license__ = "MIT"
 
 
+from functools import cache
+
+@cache
 def biocpy_plugin() -> Engine:
-    """
-    Plugin for BiocPy / BiocUtils / S4Vectors:
+    """Creates and returns an Engine with BiocPy / BiocUtils / S4Vectors conversion rules.
 
-    py -> R
-    ------
-    - BooleanList / IntegerList / FloatList / StringList
-      -> R logical/integer/double/character vectors (None -> NA_*).
+    Facilitates interoperability between BiocPy data structures (BiocFrame, typed lists)
+    and Bioconductor R S4 classes (DataFrame, DFrame, atomic vectors).
 
-    - BiocFrame -> S4Vectors::DataFrame:
-        * NumPy arrays via numpy_plugin.
-        * BiocUtils atomic lists passed through as above.
-        * Plain Python lists are inspected, wrapped into BiocUtils lists,
-          then converted. No R lists for BiocFrame columns.
+    Conversions:
+    - BiocUtils Lists (BooleanList, IntegerList, etc.) <-> R atomic vectors (logical, integer, etc.)
+    - BiocFrame <-> S4Vectors::DataFrame
 
-    R -> py
-    ------
-    - R logical/integer/double/character vectors
-      -> BooleanList / IntegerList / FloatList / StringList
-        (factor -> StringList via as.character).
+    Features:
+    - NA/None handling during vector conversion.
+    - Type inference for generic Python lists when converting to BiocFrame columns.
+    - Preservation of row names.
 
-    - S4Vectors::DataFrame / DFrame -> BiocFrame with BiocUtils lists as columns.
+    Returns:
+        Engine: An Engine instance with BiocPy rules registered.
     """
     import numpy as np
     from collections.abc import Sequence as SeqABC
@@ -75,23 +73,27 @@ def biocpy_plugin() -> Engine:
     # -------------------------------------------------
 
     def _bool_seq_to_r(seq) -> rv.BoolSexpVector:
+        """Converts a sequence of bools (or Nones) to an R logical vector."""
         return rv.BoolSexpVector(
             [NA_Logical if v is None else bool(v) for v in seq]
         )
 
     def _int_seq_to_r(seq) -> rv.IntSexpVector:
+        """Converts a sequence of ints (or Nones) to an R integer vector."""
         out = []
         for v in seq:
             out.append(NA_Integer if v is None else int(v))
         return rv.IntSexpVector(out)
 
     def _float_seq_to_r(seq) -> rv.FloatSexpVector:
+        """Converts a sequence of floats (or Nones) to an R numeric vector."""
         out = []
         for v in seq:
             out.append(NA_Real if v is None else float(v))
         return rv.FloatSexpVector(out)
 
     def _str_seq_to_r(seq) -> rv.StrSexpVector:
+        """Converts a sequence of strings (or Nones) to an R character vector."""
         out = []
         for v in seq:
             out.append(NA_Character if v is None else str(v))
@@ -103,18 +105,22 @@ def biocpy_plugin() -> Engine:
 
     @eng.register_py(BooleanList)
     def _(e, x: BooleanList):
+        """Converts BiocUtils BooleanList to R logical vector."""
         return _bool_seq_to_r(x)
 
     @eng.register_py(IntegerList)
     def _(e, x: IntegerList):
+        """Converts BiocUtils IntegerList to R integer vector."""
         return _int_seq_to_r(x)
 
     @eng.register_py(FloatList)
     def _(e, x: FloatList):
+        """Converts BiocUtils FloatList to R numeric vector."""
         return _float_seq_to_r(x)
 
     @eng.register_py(StringList)
     def _(e, x: StringList):
+        """Converts BiocUtils StringList to R character vector."""
         return _str_seq_to_r(x)
 
     # -------------------------------------------------
@@ -122,16 +128,22 @@ def biocpy_plugin() -> Engine:
     # -------------------------------------------------
 
     def _as_biocutils_list(col: SeqABC) -> BooleanList | IntegerList | FloatList | StringList:
-        """
-        Take a generic Python sequence (usually list) and return a typed
-        BiocUtils list:
-    
-        - BooleanList  for all-bool / bool-or-None
-        - IntegerList  for all-int / int-or-None
-        - FloatList    for numeric mixtures with actual floats
-        - StringList   for all-str / str-or-None
-    
-        Raises TypeError if the column is genuinely heterogeneous.
+        """Infers and creates a specific BiocUtils list type from a generic sequence.
+
+        Supported inferences:
+        - BooleanList: All elements are bool or None
+        - IntegerList: All elements are int (and not bool) or None
+        - FloatList: Mix of int/float or None
+        - StringList: All elements are str or None (fallback for all-None)
+
+        Args:
+            col: The input sequence.
+
+        Returns:
+            A typed BiocUtils list (BooleanList, IntegerList, FloatList, or StringList).
+
+        Raises:
+            TypeError: If the sequence contains mixed unsupported types.
         """
         if isinstance(col, (str, bytes)):
             raise TypeError("String column should not be treated as a generic sequence.")
@@ -168,6 +180,14 @@ def biocpy_plugin() -> Engine:
 
     @eng.register_py(BiocFrame)
     def _(e, bf: BiocFrame):
+        """Converts BiocFrame to R S4Vectors DataFrame.
+
+        Columns are converted as follows:
+        - BiocUtils lists -> R atomic vectors
+        - NumPy arrays -> R arrays/vectors
+        - Generic sequences -> Inferred BiocUtils list -> R atomic vectors
+        - Others -> Coerced to StringList -> R character vector
+        """
         cols_r: dict[str, Any] = {}
 
         for name, col in bf._data.items():
@@ -208,7 +228,7 @@ def biocpy_plugin() -> Engine:
     # -------------------------------------------------
 
     def _r_vec_to_py_list(x, coerce):
-        """Use R is.na to detect NA, map NA -> None, and coerce value otherwise."""
+        """Maps R vector to Python list with NA handling (NA -> None)."""
         na_mask = list(r["is.na"](x))
         out = []
         for v, is_na in zip(list(x), na_mask):
@@ -220,22 +240,26 @@ def biocpy_plugin() -> Engine:
 
     @eng.register_r(rv.BoolSexpVector)
     def _(e, x):
+        """Converts R logical vector to BiocUtils BooleanList."""
         vals = _r_vec_to_py_list(x, bool)
         return BooleanList(vals)
 
     @eng.register_r(rv.StrSexpVector)
     def _(e, x):
+        """Converts R character vector to BiocUtils StringList."""
         vals = _r_vec_to_py_list(x, str)
         return StringList(vals)
 
     @eng.register_r(rv.FloatSexpVector)
     def _(e, x):
+        """Converts R numeric vector to BiocUtils FloatList."""
         # plain numeric vector
         vals = _r_vec_to_py_list(x, float)
         return FloatList(vals)
 
     @eng.register_r(rv.IntSexpVector)
     def _(e, x):
+        """Converts R integer vector (or factor) to BiocUtils IntegerList (or StringList)."""
         # Special-case factors: class(x) includes "factor"
         classes = list(r["class"](x))
         if "factor" in classes:
@@ -253,6 +277,11 @@ def biocpy_plugin() -> Engine:
     @eng.register_s4("DataFrame")
     @eng.register_s4("DFrame")
     def _(e, x):
+        """Converts R S4 DataFrame/DFrame to BiocFrame.
+
+        Recursively converts columns.
+        Preserves row names.
+        """
         # S4Vectors::DataFrame / DFrame
         names = list(x.names)
         cols_py: dict[str, Any] = {}

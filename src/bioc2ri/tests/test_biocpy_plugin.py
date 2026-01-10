@@ -5,7 +5,7 @@ from rpy2.robjects.packages import importr
 from biocframe import BiocFrame
 from biocutils import BooleanList, IntegerList, FloatList, StringList
 
-# from bioc2ri.biocpy_plugin import biocpy_plugin
+from bioc2ri.biocpy_plugin import biocpy_plugin
 
 eng = biocpy_plugin()
 S4Vectors = importr("S4Vectors")

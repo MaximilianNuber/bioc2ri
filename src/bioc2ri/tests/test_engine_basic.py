@@ -1,17 +1,17 @@
-from bioc2ri.src.bioc2ri import pandas_plugin, base_plugin, numpy_plugin, biocpy_plugin, scipy_sparse_plugin
+from bioc2ri import pandas_plugin, base_plugin, numpy_plugin, biocpy_plugin, scipy_sparse_plugin
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Tuple, Type
 from rpy2.robjects import r, vectors as rv
 # from rpy2.rinterface_lib.sexp import SexpS4
 from rpy2.rinterface import SexpS4
-eng = base_plugin.base_plugin()
+eng = base_plugin()
 
 from rpy2.robjects import r, vectors as rv
 from rpy2.rinterface import NULL
 
 # If you're in a notebook and base_plugin is already defined, just do:
-eng = base_plugin.base_plugin()
+eng = base_plugin()
 
 def test_base_none_bool_int_float_str_complex_bytes_to_r():
     # None -> NULL

@@ -7,6 +7,20 @@ __license__ = "MIT"
 
 @cache
 def pandas_plugin():
+    """Creates and returns an Engine with Pandas conversion rules.
+
+    Handles conversion between Pandas types (Series, DataFrame) and R types (vectors, data.frames).
+    Delegates element-wise conversion to the NumPy engine.
+
+    Features:
+    - pd.Series -> R vector (or factor if categorical)
+    - pd.DataFrame -> R data.frame
+    - R data.frame -> pd.DataFrame
+    - Handling of row names/indexing where appropriate.
+
+    Returns:
+        Engine: An Engine instance with Pandas rules registered.
+    """
     import numpy as np
     import pandas as pd
     from pandas import CategoricalDtype
@@ -26,7 +40,10 @@ def pandas_plugin():
 
     # ---------- helpers ----------
 
+    # ---------- helpers ----------
+
     def _series_to_factor(s: "pd.Series"):
+        """Converts a categorical Pandas Series to an R factor."""
         cat = s.astype("string")
         vals = [None if pd.isna(v) else str(v) for v in cat]
         vec = rv.StrSexpVector(vals)
@@ -39,6 +56,11 @@ def pandas_plugin():
 
     @eng.register_py(pd.Series)
     def _(e, s: "pd.Series"):
+        """Converts Pandas Series to R vector or factor.
+
+        If the Series is categorical, returns an R factor.
+        Otherwise, converts to NumPy array and delegates to the internal NumPy engine.
+        """
         if isinstance(s.dtype, CategoricalDtype):
             return _series_to_factor(s)
         arr = s.to_numpy(copy=False)
@@ -48,6 +70,11 @@ def pandas_plugin():
 
     @eng.register_py(pd.DataFrame)
     def _(e, df: "pd.DataFrame"):
+        """Converts Pandas DataFrame to R data.frame.
+
+        Recursively converts columns using registered rules.
+        Preserves the index as R row names if present.
+        """
         cols = {str(name): e.py2r(df[name]) for name in df.columns}
         r_df = df_ctor(**cols)
         if df.index is not None:
@@ -58,24 +85,33 @@ def pandas_plugin():
 
     @eng.register_r(rv.FloatSexpVector)
     def _(e, x):
+        """Converts R numeric vector to NumPy/Pandas compatible type via NumPy engine."""
         return np_eng.r2py(x)
 
     @eng.register_r(rv.IntSexpVector)
     def _(e, x):
+        """Converts R integer vector to NumPy/Pandas compatible type via NumPy engine."""
         return np_eng.r2py(x)
 
     @eng.register_r(rv.BoolSexpVector)
     def _(e, x):
+        """Converts R logical vector to NumPy/Pandas compatible type via NumPy engine."""
         return np_eng.r2py(x)
 
     @eng.register_r(rv.StrSexpVector)
     def _(e, x):
+        """Converts R character vector to NumPy/Pandas compatible type via NumPy engine."""
         return np_eng.r2py(x)
 
     # ---------- R -> Python: DataFrame -> pandas.DataFrame ----------
 
     @eng.register_r(RDataFrame)
     def _(e, x: RDataFrame):
+        """Converts R data.frame to Pandas DataFrame.
+
+        Columns are converted using the internal NumPy engine (r2py).
+        Row names are preserved as the DataFrame index.
+        """
         import pandas as pd
         cols = {}
         for name in list(x.names):
