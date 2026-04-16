@@ -68,18 +68,49 @@ def pandas_plugin():
 
     # ---------- Python -> R: DataFrame ----------
 
+    # @eng.register_py(pd.DataFrame)
+    # def _(e, df: "pd.DataFrame"):
+    #     """Converts Pandas DataFrame to R data.frame.
+
+    #     Recursively converts columns using registered rules.
+    #     Preserves the index as R row names if present.
+    #     """
+    #     cols = {str(name): e.py2r(df[name]) for name in df.columns}
+    #     r_df = df_ctor(**cols)
+    #     if df.index is not None:
+    #         r_df = set_rownames(r_df, df.index.tolist(), strict_len=False)
+    #     return r_df
     @eng.register_py(pd.DataFrame)
     def _(e, df: "pd.DataFrame"):
         """Converts Pandas DataFrame to R data.frame.
 
-        Recursively converts columns using registered rules.
-        Preserves the index as R row names if present.
+        Uses ListVector to package columns, allowing the R constructor 
+        to correctly align row names during initialization.
         """
+        # 1. Convert columns to R vectors/factors via the engine
+        # We use e.py2r to ensure factor logic and numpy logic are applied
         cols = {str(name): e.py2r(df[name]) for name in df.columns}
-        r_df = df_ctor(**cols)
-        if df.index is not None:
-            r_df = set_rownames(r_df, df.index.tolist(), strict_len=False)
-        return r_df
+        
+        # 2. Package columns into a named R list (ListVector)
+        # This prevents R from miscounting rows if a column is a complex object
+        r_cols_list = rv.ListVector(cols)
+        
+        # 3. Prepare the row names
+        rn_vec = rv.StrSexpVector([str(i) for i in df.index])
+        
+        # 4. Construct the Data Frame
+        # Passing r_cols_list as the first positional argument 
+        # while explicitly naming row_names.
+        return df_ctor(**cols, row_names=rn_vec)
+    # @eng.register_py(pd.DataFrame)
+    # def _(e, df: "pd.DataFrame"):
+    #     """Converts Pandas DataFrame to R data.frame using rpy2's native converter."""
+    #     from bioc2ri.lazy_r_env import get_r_environment
+    #     r = get_r_environment()
+    #     with r.localconverter(r.default_converter + r.pandas2ri.converter):
+    #         r_df = r.get_conversion().py2rpy(df)
+    #     return r_df
+
 
     # ---------- R -> Python: vectors via NumPy engine ----------
 
@@ -102,6 +133,24 @@ def pandas_plugin():
     def _(e, x):
         """Converts R character vector to NumPy/Pandas compatible type via NumPy engine."""
         return np_eng.r2py(x)
+    
+    # 16.4.2026 - add factor support for R -> Python conversion
+    # ---------- R -> Python: Factors ----------
+
+    @eng.register_r(rv.FactorVector)
+    def _(e, x: rv.FactorVector):
+        """Converts R factor to Pandas Categorical."""
+        import pandas as pd
+        import numpy as np
+        
+        levels = list(x.levels)
+        # R factors are 1-indexed. Pandas Categorical codes are 0-indexed.
+        # rpy2 FactorVector behaves like a numpy array of 1-based ints.
+        # NAs in R are mapped to -2147483648; pandas expects -1 for codes.
+        codes = np.array(x, dtype=float) - 1
+        codes[np.isnan(codes)] = -1  # Ensure NAs are handled correctly
+        
+        return pd.Categorical.from_codes(codes.astype(int), categories=levels)
 
     # ---------- R -> Python: DataFrame -> pandas.DataFrame ----------
 
@@ -116,7 +165,9 @@ def pandas_plugin():
         cols = {}
         for name in list(x.names):
             col_r = x.rx2(name)
-            cols[str(name)] = np_eng.r2py(col_r)
+            ## test 16.6.26 np_eng -> e for r2py to avoid circular dependency
+            # cols[str(name)] = np_eng.r2py(col_r)
+            cols[str(name)] = e.r2py(col_r)
         df = pd.DataFrame(cols)
         rn = get_rownames(x)
         if rn is not None and len(rn) == len(df):

@@ -21,6 +21,7 @@ from .numpy_plugin import numpy_plugin
 from .pandas_plugin import pandas_plugin
 from .biocpy_plugin import biocpy_plugin
 from .scipy_sparse_plugin import scipy_sparse_plugin
+from .anndata_sce_plugin import anndata2sce_plugin
 
 __all__ = [
     "Engine",
